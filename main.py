@@ -1,97 +1,72 @@
+import constants as c
 import functions as f
-"""
-* Add pretty output (option 1)
-* Add exit button
-* Add func that can rewrite wallet label
-* Add func that delete wallet from storage
-* Add func that can show all transactions from saved wallets 
-"""
-
-def first_option(serverApi, wallet):
-    data = serverApi.get_wallet_info(wallet)
-
-    if int(data['status']) != 0:  # 0 - Something gone wrong, 1 - ok
-        
-        for item in data['result']:
-            info = {
-                'Block Number': item['blockNumber'],
-                'Time Stamp': item['timeStamp'],
-                'Amount': item['value'],
-                'Gas': item['gas'],
-                'Gas Used': item['gasUsed'],
-                'Gas Price': item['gasPrice'],
-                'From': item['from'],
-                'To': item['to'],
-                'Hash': item['hash'],
-                'Block Hash': item['blockHash']
-            }
-
-            for key, item in info.items():
-                print(f"{key}  -  {item}")
-            
-            print('\n')
-
-        # How many transactions were found
-        amount = len(data['result'])
-        print(f'Number of transactions: {amount}')
-
-    else:
-        print(data['message'])  # Error message
-
-
-def second_option(serverApi, storage, new_wallet, label=None):
-    # Checking the new wallet for validity
-    wallet_info = serverApi.get_wallet_info(new_wallet)
-
-    if int(wallet_info['status']) != 0:
-        result = storage.add_wallet(new_wallet, label)
-        
-        if result:
-            print('Wallet was successfully added!')
-
-    else:
-        print('Invalid wallet!')
-
-
-def third_option(storage):
-    storage_data = storage.read()  # Get data from storage
-
-    if storage_data:
-        for wallet in storage_data:
-            print(wallet)
-
-    else:
-        print('Storage is empty!')
 
 
 def _main():
-    storage = f.Storage()
-    serverApi = f.EtherscanApi()
-    while True:
-        option = f.Style.get_option()  # Get option
+    etherscan = f.EtherscanApi(c.API_KEY)
+    storage = f.Storage(c.STORAGE_PATH)
+    eth = f.Ethereum()
+    menu = f.Menu()
 
+    while True:
+
+        option = menu.get_option(1)  # Show main menu
         if option == 1:
-            '''Get wallet history of transactions'''
+            '''Show wallet transactions history'''
 
             # 0xA3390BF36e2BDeBf6d61d49E0DE910609C8F13E6
             wallet = input('Wallet adress --> ')
-            first_option(serverApi, wallet)
+            wallet_data = etherscan.get_wallet_info(wallet)
+
+            # Convert data to ready print result
+            transactions = etherscan.sort_data(wallet_data)
+
+            # Show how many transactions were found
+            transactions_num = len(transactions)
+            print(f'\nNumber of transactions: {transactions_num}\n')
+
+            for row in transactions:
+                for key, item in row.items():
+                    print(f'{key}  -  {item}')
+                print('\n')
+        
 
         elif option == 2:
-            '''Add new wallet for tracking'''
+            '''Wallets Storage
 
-            new_wallet = input('Wallet adress --> ')
-            label = input('Wallet label (not nocessary) --> ')
-            second_option(serverApi, storage, new_wallet, label)
+            - Show wallets that tracked
+            - Add new wallet
+            - Remove wallet
+            - Rename label
+            '''
+            storage.show_saved_wallets()
 
-        elif option == 3:
+            storage_option = menu.get_option(2)  # Show storage menu
+            if storage_option == 1:
+                '''Add new wallet in storage'''
 
-            '''Return wallets that tracked'''
-            third_option(storage)
+                wallet_adrress = input('Wallet adress --> ')
+                wallet_label = input('Wallet label (not nocessary) --> ')
+            
+                # Checking the new wallet for validity
+                if eth.check_wallet(wallet_adrress) is not None:
+                    storage.add_wallet(wallet_adrress, wallet_label)        
+                
+            elif storage_option == 2:
+                '''Remove Wallet'''
+
+                deleted_wallet = input('Wallet adress --> ')
+                storage.remove_wallet(deleted_wallet)
+
+                print('Wallet was removed!')   
+        
+        elif option == 0:
+            print('Thank you for using this program!')
+            exit()
 
         else:
             print('Invalid option')
-            option = f.Style.get_option()
+            option = menu.get_option(1)
 
 
 if __name__ == '__main__':

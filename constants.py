@@ -1,2 +1,2 @@
-MAIN_STORAGE = 'storage.json'
+STORAGE_PATH = 'storage/storage.json'
 API_KEY = '7ZWCI343DKFX4SJ6YZTZRNZEZC8YGKGMDA'
